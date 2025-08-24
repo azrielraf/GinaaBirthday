@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Make a wish 🎂 + Polaroid</title>
+
+  <!-- Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&family=Caveat:wght@600&display=swap" rel="stylesheet">
+
+  <style>
+    :root{
+      --bg:#ffffff; --ink:#222; --muted:#6b7280;
+      --cake:#f4ce9e; --outline:#bd9b73; --icing:#ffffff;
+      --pink:#f7a8c8; --teal:#44b6c5; --candle:#ffb0b0; --stripe:#fff0f0; --wick:#6b4b3f;
+      --paper:#fff; --note:#f8ecd2; --shadow:0 12px 30px rgba(0,0,0,.16), 0 3px 12px rgba(0,0,0,.08);
+      --polaroid-w:clamp(220px, 32vw, 340px);
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0; background:var(--bg); color:var(--ink);
+      font-family:Poppins,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
+      display:flex; flex-direction:column; align-items:center; justify-content:flex-start;
+    }
+    .wrap{ width:100%; max-width:880px; padding:22px 12px 40px; display:flex; flex-direction:column; align-items:center; }
+
+    /* Fade-ins */
+    .fade-in{opacity:0; transform:translateY(20px); animation:fadeInUp 1s ease forwards;}
+    .delay-1{animation-delay:.2s}.delay-2{animation-delay:.45s}.delay-3{animation-delay:.7s}.delay-4{animation-delay:.95s}.delay-5{animation-delay:1.2s}
+    @keyframes fadeInUp{to{opacity:1; transform:translateY(0)}}
+
+    /* Gate (bear overlay) */
+    #gate{ position:fixed; inset:0; background:#fff; display:grid; place-items:center; z-index:999; transition:opacity .55s ease; }
+    #gate.hide{ opacity:0; pointer-events:none; }
+    #gate .gate-inner{ text-align:center; }
+    #gate img{ width:min(68vw,360px); height:auto; display:block; margin:0 auto 8px; animation:bob 2.2s ease-in-out infinite; }
+    #gate p{ font-size:clamp(14px,3vw,18px); color:var(--muted); margin:6px 0 0; }
+    @keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
+
+    /* Defer content until revealed */
+    body.defer-anim .wrap{opacity:0}
+    body.revealed .wrap{opacity:1; transition:opacity .55s ease}
+    body.defer-anim .fade-in{opacity:0; transform:translateY(20px); animation:none!important}
+    body.revealed .fade-in{animation:fadeInUp 1s ease forwards}
+
+    /* Polaroids */
+    .gallery{ margin:20px auto; width:100%; }
+    .polaroids{ display:flex; justify-content:center; align-items:flex-start; gap:28px; flex-wrap:nowrap; }
+    @media (max-width:720px){ .polaroids{ flex-wrap:wrap; gap:20px; } }
+    .polaroid{ position:relative; flex:1 1 var(--polaroid-w); max-width:var(--polaroid-w); display:flex; justify-content:center; }
+
+    /* 3D red push pin */
+    .pin{ position:absolute; top:-14px; left:50%; transform:translateX(-50%); width:22px; height:22px; border-radius:50%;
+      background:radial-gradient(circle at 35% 35%, #ff9aa2 0 35%, #ff3b3b 36% 70%, #a90f0f 71% 100%);
+      box-shadow:0 6px 10px rgba(0,0,0,.28); border:1px solid rgba(0,0,0,.08); z-index:2;
+    }
+    .pin::after{content:""; position:absolute; top:4px; left:6px; width:6px; height:6px; border-radius:50%; background:rgba(255,255,255,.85)}
+    .pin::before{content:""; position:absolute; bottom:-12px; left:50%; transform:translateX(-50%); width:2px; height:12px; border-radius:1px;
+      background:linear-gradient(#7f0d0d,#4d0808); box-shadow:0 2px 2px rgba(0,0,0,.25)}
+
+    .paper{
+      position:relative; width:100%; background:var(--paper); border-radius:14px; box-shadow:var(--shadow);
+      padding:12px 12px 58px; margin-top:10px;
+      background:linear-gradient(#fff,#fff) padding-box, linear-gradient(180deg,#f3f4f6,#fff) border-box;
+      border:1px solid rgba(0,0,0,.06);
+    }
+    .photo{ aspect-ratio:1/1; border-radius:10px; overflow:hidden; background:#e5e7eb; box-shadow:inset 0 0 0 1px rgba(0,0,0,.05); }
+    .photo img{ width:100%; height:100%; object-fit:cover; display:block; }
+    .label{ position:absolute; left:12px; right:12px; bottom:12px; text-align:center; font-family:Caveat,"Comic Sans MS",cursive; font-size:22px; color:#1f2937; user-select:none; pointer-events:none; }
+
+    /* Letter */
+    .note{
+      margin:30px 0; max-width:720px; padding:24px 26px;
+      background:linear-gradient(180deg,#fff9ec,#f8ecd2); border:1px solid #e5c89a; border-radius:12px;
+      box-shadow:0 10px 24px rgba(0,0,0,.12), inset 0 0 6px rgba(255,255,255,.6);
+      color:#3d2f22; font-family:Georgia,"Times New Roman",serif; font-size:16px; line-height:1.7; text-align:center;
+    }
+    .note .rule{height:1px; background:linear-gradient(90deg,transparent,#d4a373,transparent); margin:10px 0 14px}
+    .note strong{font-weight:700}.note em{font-style:italic}
+
+    /* Text & Cake */
+    h1{ text-align:center; margin:28px 0 8px; font-size:clamp(22px,4.8vw,34px); font-weight:600; }
+    .hint{ text-align:center; margin:0 0 24px; font-size:clamp(14px,3.2vw,18px); color:var(--muted); }
+    .cake{ width:min(92vw, 620px); display:block; margin:0 auto; cursor:pointer; touch-action:manipulation; }
+    .cake:focus{ outline:3px dashed #ddd; outline-offset:6px; }
+
+    /* Flame */
+    #flame{ transform-origin:50% 100%; animation:flicker 1.4s ease-in-out infinite; filter: drop-shadow(0 0 6px rgba(255,170,20,.95)) drop-shadow(0 0 14px rgba(255,150,0,.55)); }
+    @keyframes flicker{0%{transform:translateY(0) rotate(0) scale(1)}20%{transform:translateY(-1px) rotate(-1.2deg) scale(1.05)}40%{transform:translateY(0) rotate(1.1deg) scale(.98)}60%{transform:translateY(-1px) rotate(.8deg) scale(1.06)}80%{transform:translateY(0) rotate(-.8deg) scale(1)}100%{transform:translateY(0) rotate(0) scale(1)}}
+    .out #flame{ animation:none; opacity:0; } .out #glow{ opacity:0; transition:opacity .3s ease; }
+    .smoke circle{ opacity:0; } .out .smoke circle{ animation:puff 1.4s ease-out forwards; }
+    .out .smoke circle:nth-child(2){ animation-delay:.08s } .out .smoke circle:nth-child(3){ animation-delay:.16s }
+    @keyframes puff{0%{opacity:0; transform:translate(0,0) scale(.7)}20%{opacity:.85}100%{opacity:0; transform:translate(0,-46px) scale(1.5)}}
+
+    .footer{ text-align:center; margin-top:20px; font-size:12px; color:#8a8a8a; }
+  </style>
+</head>
+
+<body class="defer-anim">
+  <!-- Gate (tap the bear) -->
+  <div id="gate" role="button" aria-label="Ketuk beruang untuk mulai" tabindex="0">
+    <div class="gate-inner">
+      <!-- Ganti gambar beruangmu di sini -->
+      <img src="foto g/beruang.png" alt="Teddy bear" />
+      <p>pencet beruangnya naa</p>
+    </div>
+  </div>
+
+  <main class="wrap">
+    <!-- Polaroids -->
+    <section class="gallery fade-in delay-1" aria-label="Tiga foto polaroid">
+      <div class="polaroids">
+        <figure class="polaroid">
+          <span class="pin" aria-hidden="true"></span>
+          <div class="paper" aria-label="Polaroid 1">
+            <div class="photo">
+              <!-- Ganti ke fotomu -->
+              <img alt="Foto 1" src="foto g/IMG1 (2).jpg"/>
+            </div>
+            <div class="label">happyy</div>
+          </div>
+        </figure>
+        <figure class="polaroid">
+          <span class="pin" aria-hidden="true"></span>
+          <div class="paper" aria-label="Polaroid 2">
+            <div class="photo">
+              <img alt="Foto 2" src="foto g/IMG1 (3).jpg"/>
+            </div>
+            <div class="label">birthdayy</div>
+          </div>
+        </figure>
+        <figure class="polaroid">
+          <span class="pin" aria-hidden="true"></span>
+          <div class="paper" aria-label="Polaroid 3">
+            <div class="photo">
+              <img alt="Foto 3" src="foto g/IMG1 (4).jpg"/>
+            </div>
+            <div class="label">princess</div>
+          </div>
+        </figure>
+      </div>
+    </section>
+
+    <!-- Letter -->
+    <section class="note fade-in delay-2">
+      <h2><strong>Happy 19th Birthday, Naa!</strong></h2>
+      <p>Untuk kamu yang special hiyaa dah kaya martabak ahaha, aku super excited akhirnya bisa kasih liat ini ke kamuu, tepat di hari spesialmu. Anggap aja website ini hadiah kecil dari akuu, semoga berkesan dan bikin hari ini jadi lebih istimewa yaa!</p>
+      <div class="rule"></div>
+      <p>Doaku buat kamu di umur yang baru ini semoga semua goals kamu tercapai, jadi pribadi yang makin pintar dan baik hatinya dan pastinya jadi kebanggaan terbesar mami, papi, kaka, kebanggaan aku juga boleh🤪</p>
+      <div class="rule"></div>
+      <p><em>Enjoy your day to the fullest! You deserve all the happiness in the world.</em></p>
+      <p>-Rafa-</p>
+    </section>
+
+    <!-- Text -->
+    <h1 class="fade-in delay-3">Make a wish ✨</h1>
+    <p class="hint fade-in delay-4" id="hint">Habis itu kamu tiup lilinnya dipencet aja diapinyaa</p>
+
+    <!-- Cake (SVG) -->
+    <svg id="cake" class="cake fade-in delay-5" role="button" tabindex="0"
+         aria-label=" ulang tahun dengan lilin menyala. Ketuk untuk memadamkan."
+         viewBox="0 0 600 520">
+      <ellipse cx="300" cy="170" rx="240" ry="78" fill="var(--icing)" stroke="var(--outline)" stroke-width="4"/>
+      <path d="M60,170 v150 c0,54 92,98 240,98 s240-44 240-98 V170 c-18,28-44,38-70,34 c-32-5-52,32-84,32 s-54-42-86-42 s-58,48-90,48 s-54-44-86-36 c-24,6-46-10-64-36z" fill="var(--icing)" stroke="var(--outline)" stroke-width="4"/>
+      <path d="M60,320 v56 c0,70 92,126 240,126 s240-56 240-126 v-56 c-48,30-144,48-240,48 s-192-18-240-48z" fill="var(--cake)" stroke="var(--outline)" stroke-width="4"/>
+      <g stroke-linecap="round" stroke-width="10">
+        <path d="M210 150 l20 0" stroke="var(--teal)"/>
+        <path d="M320 138 l22 0" stroke="var(--teal)" transform="rotate(18 331 138)"/>
+        <path d="M410 166 l22 0" stroke="var(--teal)" transform="rotate(-22 421 166)"/>
+        <path d="M145 176 l22 0" stroke="var(--teal)" transform="rotate(-18 156 176)"/>
+        <path d="M265 156 l22 0" stroke="var(--pink)" transform="rotate(-16 276 156)"/>
+        <path d="M365 148 l22 0" stroke="var(--pink)" transform="rotate(10 376 148)"/>
+        <path d="M120 150 l22 0" stroke="var(--pink)" transform="rotate(18 131 150)"/>
+        <path d="M455 150 l22 0" stroke="var(--pink)" transform="rotate(-14 466 150)"/>
+      </g>
+      <g transform="translate(300 92)">
+        <rect x="-16" y="0" width="32" height="94" rx="4" fill="var(--candle)" stroke="var(--outline)" stroke-width="3"/>
+        <g stroke="var(--stripe)" stroke-width="6" opacity=".9">
+          <path d="M-14 14 l28 -28"/><path d="M-14 38 l28 -28"/><path d="M-14 62 l28 -28"/><path d="M-14 86 l28 -28"/>
+        </g>
+        <rect x="-2" y="-10" width="4" height="12" fill="var(--wick)"/>
+        <circle id="glow" cx="0" cy="-30" r="28" fill="rgba(255,184,28,.25)"/>
+        <g id="flame">
+          <path d="M0 -52 c14 0 24 12 24 26 c0 16-16 32-24 40 c-8-8-24-24-24-40 c0-14 10-26 24-26z" fill="#ffcc33" stroke="#e2a21f" stroke-width="2"/>
+          <path d="M0 -38 c7 0 12 6 12 13 c0 8-8 16-12 20 c-4-4-12-12-12-20 c0-7 5-13 12-13z" fill="#fff6b0" opacity=".8"/>
+        </g>
+        <g class="smoke" transform="translate(0,-40)" fill="rgba(140,140,140,.6)">
+          <circle r="6"/><circle r="7" cx="-9" cy="-2"/><circle r="5" cx="10" cy="1"/>
+        </g>
+      </g>
+    </svg>
+
+    <!-- MUSIC (autoplay muted → unmute di klik beruang) -->
+    <!-- Pastikan file ada di /music/music1.mp3 (tanpa spasi) -->
+    <audio id="bgm" src="music/music1.mp3" autoplay muted loop preload="auto" playsinline></audio>
+  </main>
+
+  <script>
+    // Fade-in helper for audio
+    function fadeInAudio(audio, targetVol = 0.8, duration = 3000){
+      if(!audio) return;
+      audio.volume = 0;
+      const t0 = performance.now();
+      function step(t){
+        const p = Math.min(1, (t - t0) / duration);
+        audio.volume = p * targetVol;
+        if(p < 1 && !audio.paused) requestAnimationFrame(step);
+      }
+      requestAnimationFrame(step);
+    }
+
+    (function(){
+      const DEFAULT_NEXT = "flower.html";
+      const REDIRECT_DELAY = 1400;
+      const cake = document.getElementById('cake');
+      const hint = document.getElementById('hint');
+
+      // Blow candle
+      function blow(){
+        cake.classList.add('out');
+        if(hint) hint.textContent = 'Aamiin semoga wishnya terkabul yaa, wait aku masi ada sesuatu buat kamu';
+        setTimeout(()=>{ window.location.assign(new URLSearchParams(location.search).get('next') || DEFAULT_NEXT); }, REDIRECT_DELAY);
+      }
+      cake.addEventListener('click', blow, {passive:true});
+      cake.addEventListener('keydown', (e)=>{ if(e.code==='Space'||e.code==='Enter'){ e.preventDefault(); blow(); } });
+
+      // Gate (bear) → reveal + unmute music
+      const gate = document.getElementById('gate');
+      function reveal(){
+        const bgm = document.getElementById('bgm');
+        try{ bgm.muted = false; }catch(e){}
+        try{ bgm.play(); }catch(e){}
+        fadeInAudio(bgm, 0.8, 3000);
+
+        document.body.classList.remove('defer-anim');
+        document.body.classList.add('revealed');
+        if(gate){ gate.classList.add('hide'); setTimeout(()=> gate.remove(), 600); }
+      }
+      if(gate){
+        gate.addEventListener('click', reveal, {passive:true});
+        gate.addEventListener('keydown', (e)=>{ if(e.code==='Space'||e.code==='Enter'){ e.preventDefault(); reveal(); }});
+      }
+    })();
+  </script>
+</body>
+</html>

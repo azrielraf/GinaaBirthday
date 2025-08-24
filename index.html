@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Happy Birthday Gina!</title>
+  <link rel="preload" as="audio" href="music.mp3" />
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;700&display=swap" rel="stylesheet">
+  <style>
+    body { margin:0; background:black; color:white; font-family:Poppins, sans-serif; overflow:hidden; }
+    #intro { position:fixed; inset:0; display:flex; align-items:center; justify-content:center; background:black; flex-direction:column; z-index:6; transition:opacity 0.8s ease; }
+    #intro.hidden{display:none;}
+    #neonTitle { font-size:3rem; font-weight:700; text-align:center; color:#ff79c6; }
+   #neonTitle { 
+  font-size:3rem; 
+  font-weight:700; 
+  text-align:center; 
+  color:#ff79c6; 
+  letter-spacing:.02em; 
+}
+/* Glow per-word (looping per kata) */
+#neonTitle .word{
+  display:inline-block; 
+  position:relative; 
+  margin:0 .25ch; 
+  color:rgba(255,121,198,.25);
+  --g:0;
+  text-shadow:
+    0 0 calc(2px * var(--g))  rgba(255,121,198, var(--g)),
+    0 0 calc(6px * var(--g))  rgba(255,79,182,  var(--g)),
+    0 0 calc(14px * var(--g)) rgba(255,43,138,  var(--g)),
+    0 0 calc(28px * var(--g)) rgba(255,43,138,  var(--g));
+}
+
+
+    #neonTitle .space{ width: .45ch; display:inline-block; }
+    #startBtn{
+  margin-top:20px; 
+  padding:12px 26px; 
+  background:linear-gradient(180deg,#ff2b8a,#ff6db9); 
+  border:none; color:#fff; 
+  border-radius:999px; 
+  cursor:pointer; 
+  font-size:1rem; 
+  font-weight:700; 
+  box-shadow:0 0 16px rgba(255,43,138,.55), inset 0 0 0 2px rgba(255,255,255,.08);
+  transition:transform .15s ease, box-shadow .3s ease;
+}
+#startBtn:hover{ 
+  transform:translateY(-1px); 
+  box-shadow:0 0 26px rgba(255,43,138,.8), inset 0 0 0 2px rgba(255,255,255,.12);
+}
+#startBtn:active{ transform:translateY(0); }
+
+    #stage { position:relative; width:100%; height:100vh; opacity:0; transition:opacity 1s ease; }
+
+    /* Fireworks & stars canvas */
+    #fireworks, #stars { position: absolute; inset:0; z-index:0; pointer-events:none; }
+
+   #subtitle {
+  position: relative; z-index:1; margin-bottom: 14px;
+  font-size: clamp(16px, 2.6vw, 22px); letter-spacing:.06em;
+  color:#ffffff;
+  text-shadow:
+    0 0 6px #ffffff,
+    0 0 14px #ffffff,
+    0 0 32px #ffffff,
+    0 0 64px rgba(255,255,255,.9);
+  opacity: 0; /* mulai tersembunyi */
+}
+
+
+    #neonTitle, #startBtn { position: relative; z-index:1; }
+    canvas#fireworks, canvas#stars { position:absolute; top:0; left:0; width:100%; height:100%; }
+  </style>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js" id="gsap-cdn" defer></script>
+</head>
+<body>
+  <div id="intro">
+    <canvas id="stars"></canvas>
+    <canvas id="fireworks"></canvas>
+    <div id="neonTitle" class="neon-wrapper" data-text="Happy Birthday Gina"></div>
+    <div id="subtitle">I have something for you</div>
+    <button id="startBtn">Tekan Akuu</button>
+  </div>
+  <div id="stage"></div>
+  <audio id="music" src="music.mp3"></audio>
+
+  <script>
+    (function initWhenReady(){
+      function init(){
+        const intro = document.getElementById('intro');
+        const stage = document.getElementById('stage');
+        const startBtn = document.getElementById('startBtn');
+        const music = document.getElementById('music');
+        const neonTitle = document.getElementById('neonTitle');
+        const subtitle = document.getElementById('subtitle');
+        const fwCanvas = document.getElementById('fireworks');
+        const fctx = fwCanvas.getContext('2d');
+        const starsCanvas = document.getElementById('stars');
+        const sctx = starsCanvas.getContext('2d');
+
+        function resize(){
+          fwCanvas.width = window.innerWidth; fwCanvas.height = window.innerHeight;
+          starsCanvas.width = window.innerWidth; starsCanvas.height = window.innerHeight;
+        }
+        resize(); window.addEventListener('resize', resize);
+
+       // Setup WORDS for neon effect (loop Happy → Birthday → Gina)
+(function setupTitleWords(){
+  const raw = (neonTitle.getAttribute('data-text') || 'Happy Birthday Gina').trim();
+  neonTitle.innerHTML = '';
+  const words = raw.split(/\s+/).map(w => {
+    const span = document.createElement('span');
+    span.className = 'word';
+    span.textContent = w;
+    neonTitle.appendChild(span);
+    return span;
+  });
+
+  if (!window.gsap || !words.length) return;
+
+  // Semua kata “mati” (glow off) dulu
+  gsap.set(words, { '--g': 0, color: 'rgba(255,121,198,0.25)' });
+
+  // Loop: tiap kata menyala → padam → lanjut kata berikutnya
+  const tl = gsap.timeline({ repeat: -1, defaults: { ease: 'power2.out' } });
+  words.forEach((w) => {
+    tl.to(w, { '--g': 1, color: '#ff79c6', duration: 0.5 })
+      .to(w, { '--g': 0, color: 'rgba(255,121,198,0.25)', duration: 0.5 }, '+=0.4');
+  });
+  window.__neonTL = tl;
+})();
+
+
+  // Fade in subtitle smoothly
+gsap.to(subtitle, { opacity:1, duration:2, ease:'power2.out' });
+
+
+
+        // Simple fireworks (intro only)
+        let fwParticles=[]; let fwRAF=null; let fwTimer=null;
+        function spawnFirework(){
+          const x = Math.random()*fwCanvas.width*0.8 + fwCanvas.width*0.1;
+          const y = Math.random()*fwCanvas.height*0.45 + fwCanvas.height*0.1;
+          const hue = Math.floor(180+Math.random()*160);
+          const count = 40+Math.floor(Math.random()*25);
+          for(let i=0;i<count;i++){
+            const angle = (Math.PI*2)*(i/count) + Math.random()*0.2;
+            const speed = 1.5+Math.random()*2.2;
+            fwParticles.push({ x, y, vx: Math.cos(angle)*speed, vy: Math.sin(angle)*speed, life: 0, max: 60+Math.random()*20, hue });
+          }
+        }
+        function stepFW(){
+          fctx.clearRect(0,0,fwCanvas.width, fwCanvas.height);
+          for(let i=fwParticles.length-1;i>=0;i--){
+            const p = fwParticles[i]; p.life++;
+            p.x += p.vx; p.y += p.vy; p.vy += 0.02;
+            const alpha = 1 - p.life/p.max;
+            if (alpha<=0){ fwParticles.splice(i,1); continue; }
+            fctx.beginPath();
+            fctx.fillStyle = `hsla(${p.hue}, 100%, 60%, ${alpha})`;
+            fctx.shadowColor = `hsla(${p.hue}, 100%, 60%, ${alpha})`;
+            fctx.shadowBlur = 12;
+            fctx.arc(p.x, p.y, 2, 0, Math.PI*2);
+            fctx.fill();
+          }
+          fwRAF = requestAnimationFrame(stepFW);
+        }
+        function startFireworks(){ if(!fwRAF){ stepFW(); } if(!fwTimer){ fwTimer = setInterval(spawnFirework, 900); } }
+        function stopFireworks(){ cancelAnimationFrame(fwRAF); fwRAF=null; clearInterval(fwTimer); fwTimer=null; fctx.clearRect(0,0,fwCanvas.width, fwCanvas.height); }
+        startFireworks();
+
+        // Stars background
+        let stars=[]; const STAR_COUNT=150;
+        function initStars(){
+          stars=[];
+          for(let i=0;i<STAR_COUNT;i++){
+            stars.push({ x:Math.random()*starsCanvas.width, y:Math.random()*starsCanvas.height, size:Math.random()*1.5+0.5, alpha:Math.random(), speed:Math.random()*0.3+0.05 });
+          }
+        }
+        function stepStars(){
+          sctx.clearRect(0,0,starsCanvas.width, starsCanvas.height);
+          for(const star of stars){
+            star.alpha += (Math.random()-0.5)*0.1;
+            star.alpha=Math.max(0.2,Math.min(1,star.alpha));
+            sctx.beginPath();
+            sctx.fillStyle = `rgba(255,255,255,${star.alpha})`;
+            sctx.arc(star.x, star.y, star.size, 0, Math.PI*2);
+            sctx.fill();
+          }
+          requestAnimationFrame(stepStars);
+        }
+        initStars(); stepStars();
+
+        async function unlockAudio(){ try{ await music.play(); music.pause(); music.currentTime=0; }catch(e){} }
+
+        function runShow(){
+          stage.style.opacity = '1';
+          // langsung redirect ke halaman flower.html
+          window.location.href = "cake.html";
+        }
+
+        if(startBtn){
+          startBtn.addEventListener('click', async ()=>{
+            await unlockAudio();
+            intro.style.opacity='0';
+            stopFireworks();
+            setTimeout(()=>{ intro.classList.add('hidden'); runShow(); }, 800);
+          });
+        }
+      }
+      document.addEventListener('DOMContentLoaded', () => { if(window.gsap) init(); });
+    })();
+  </script>
+</body>
+</html>
